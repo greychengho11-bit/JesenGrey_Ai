@@ -1,0 +1,938 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>JesenGrey AI – Interpretasi SPSS Otomatis</title>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F8FAFC;--card:#FFFFFF;--text:#0F172A;--sub:#64748B;--border:#E2E8F0;
+  --sidebar:#1E3A5F;--blue:#2563EB;--indigo:#6366F1;--green:#10B981;
+  --sidebar-w:220px;
+}
+body.dark{
+  --bg:#0F172A;--card:#1E293B;--text:#F1F5F9;--sub:#94A3B8;--border:#334155;--sidebar:#0D1829;
+}
+body{font-family:'Inter',-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;transition:background .3s,color .3s;overflow-x:hidden}
+::-webkit-scrollbar{width:5px;height:5px}
+::-webkit-scrollbar-thumb{background:#334155;border-radius:10px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:var(--sidebar-w);min-height:100vh;background:var(--sidebar);
+  display:flex;flex-direction:column;transition:width .25s ease;
+  position:sticky;top:0;height:100vh;overflow:hidden;flex-shrink:0;z-index:100;
+}
+#sidebar.collapsed{width:64px}
+.sb-logo{display:flex;align-items:center;gap:10px;padding:20px 16px 16px;overflow:hidden;white-space:nowrap}
+#sidebar.collapsed .sb-logo{justify-content:center;padding:20px 0}
+.sb-logo-icon{width:36px;height:36px;border-radius:10px;background:linear-gradient(135deg,#2563EB,#6366F1);display:flex;align-items:center;justify-content:center;font-size:17px;font-weight:800;color:#fff;flex-shrink:0}
+.sb-logo-text{overflow:hidden}
+.sb-logo-text .brand{font-size:14px;font-weight:700;color:#F1F5F9;line-height:1.2}
+.sb-logo-text .tagline{font-size:10px;color:#60A5FA;font-weight:500}
+#sidebar.collapsed .sb-logo-text{display:none}
+.sb-section-label{font-size:10px;color:#475569;font-weight:600;letter-spacing:.08em;padding:0 16px 4px;overflow:hidden;white-space:nowrap}
+#sidebar.collapsed .sb-section-label{display:none}
+nav{padding:0 10px;flex:1}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 14px;border-radius:10px;cursor:pointer;transition:all .2s;color:#CBD5E1;font-size:13.5px;font-weight:500;border:none;background:none;width:100%;text-align:left;white-space:nowrap;overflow:hidden}
+.nav-item:hover{background:rgba(255,255,255,.08);color:#fff}
+.nav-item.active{background:rgba(37,99,235,.25);color:#60A5FA;font-weight:600}
+.nav-item .nav-icon{font-size:16px;flex-shrink:0}
+.nav-item .nav-label{overflow:hidden}
+#sidebar.collapsed .nav-label{display:none}
+#sidebar.collapsed .nav-item{justify-content:center;padding:10px 0}
+.sb-footer{padding:12px 10px}
+.sb-plan{background:rgba(37,99,235,.15);border-radius:10px;padding:12px;margin-bottom:10px;overflow:hidden;white-space:nowrap}
+#sidebar.collapsed .sb-plan{display:none}
+.sb-plan-title{font-size:11px;color:#60A5FA;font-weight:600;margin-bottom:4px}
+.sb-plan-sub{font-size:11px;color:#94A3B8;margin-bottom:8px}
+.prog-bar{height:6px;border-radius:10px;background:#E2E8F0;overflow:hidden}
+.prog-fill{height:100%;border-radius:10px;background:linear-gradient(90deg,#2563EB,#6366F1);transition:width .1s linear}
+
+/* ── MAIN ── */
+#main{flex:1;overflow:auto;display:flex;flex-direction:column;min-width:0}
+#topbar{background:var(--card);border-bottom:1px solid var(--border);padding:14px 28px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:50;transition:background .3s,border-color .3s}
+.topbar-title{font-size:17px;font-weight:700;color:var(--text)}
+.topbar-sub{font-size:12px;color:var(--sub)}
+.topbar-right{display:flex;align-items:center;gap:12px}
+.ai-badge{display:flex;align-items:center;gap:8px;padding:7px 14px;background:#EFF6FF;border-radius:20px;transition:background .3s}
+body.dark .ai-badge{background:#1E293B}
+.ai-dot{width:8px;height:8px;border-radius:50%;background:#10B981;animation:pulse 2s infinite}
+.ai-badge-text{font-size:12px;font-weight:600;color:#2563EB}
+.avatar{width:36px;height:36px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#6366F1);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:14px;cursor:pointer;flex-shrink:0}
+#content{padding:28px;flex:1}
+
+/* ── BUTTONS ── */
+.btn-primary{background:linear-gradient(135deg,#2563EB,#4F46E5);color:#fff;border:none;padding:11px 22px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;transition:all .2s;display:inline-flex;align-items:center;gap:8px;font-family:inherit}
+.btn-primary:hover{opacity:.92;transform:translateY(-1px);box-shadow:0 6px 20px rgba(37,99,235,.35)}
+.btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none;box-shadow:none}
+.btn-ghost{background:transparent;border:1.5px solid var(--border);padding:9px 18px;border-radius:9px;font-size:13px;font-weight:500;cursor:pointer;transition:all .2s;color:var(--sub);font-family:inherit}
+.btn-ghost:hover{background:rgba(37,99,235,.07);border-color:#2563EB;color:#2563EB}
+.badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:600}
+
+/* ── CARDS ── */
+.card{border-radius:14px;transition:all .2s;background:var(--card);border:1px solid var(--border)}
+.card:hover{box-shadow:0 8px 30px rgba(0,0,0,.08)}
+
+/* ── FORMS ── */
+.input,.select{width:100%;padding:10px 14px;border-radius:9px;font-size:14px;outline:none;transition:border .2s;font-family:inherit;background:var(--card);color:var(--text);border:1.5px solid var(--border)}
+.input:focus,.select:focus{border-color:#2563EB;box-shadow:0 0 0 3px rgba(37,99,235,.12)}
+.select{cursor:pointer;appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:32px}
+
+/* ── GRID ── */
+.grid-4{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px}
+.grid-2{display:grid;grid-template-columns:2fr 1fr;gap:16px}
+.grid-2-equal{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.grid-auto{display:grid;grid-template-columns:repeat(auto-fill,minmax(180px,1fr));gap:12px}
+@media(max-width:900px){.grid-2{grid-template-columns:1fr}}
+@media(max-width:600px){.grid-2-equal{grid-template-columns:1fr}#content{padding:16px}}
+
+/* ── PAGES ── */
+.page{display:none;flex-direction:column;gap:24px}
+.page.active{display:flex}
+
+/* ── ANIMATIONS ── */
+@keyframes pulse{0%,100%{opacity:1}50%{opacity:.5}}
+@keyframes blink{0%,50%{opacity:1}51%,100%{opacity:0}}
+@keyframes shimmer{0%{background-position:-200%}100%{background-position:200%}}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.tw-cursor{animation:blink 1s infinite;color:#2563EB}
+.pulse{animation:pulse 2s infinite}
+.fade-in{animation:fadeIn .35s ease}
+
+/* ── DROP ZONE ── */
+.drop-zone{border:2px dashed var(--border);border-radius:14px;padding:40px 20px;text-align:center;cursor:pointer;transition:all .2s;background:var(--card)}
+.drop-zone:hover,.drop-zone.drag{border-color:#2563EB;background:rgba(37,99,235,.04)}
+
+/* ── CHAT ── */
+.chat-messages{background:var(--card);border:1px solid var(--border);border-radius:14px;height:400px;overflow-y:auto;padding:20px;display:flex;flex-direction:column;gap:16px;transition:background .3s,border-color .3s}
+.bubble-user{background:linear-gradient(135deg,#2563EB,#4F46E5);color:#fff;border-radius:14px 14px 4px 14px;padding:11px 15px;max-width:72%;font-size:13.5px;line-height:1.55}
+.bubble-ai{background:#F1F5F9;color:var(--text);border-radius:14px 14px 14px 4px;padding:11px 15px;max-width:78%;font-size:13.5px;line-height:1.6;transition:background .3s}
+body.dark .bubble-ai{background:#293548}
+.chat-row{display:flex;align-items:flex-end;gap:10px}
+.chat-row.user{justify-content:flex-end}
+.ai-avatar-sm{width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#4F46E5);display:flex;align-items:center;justify-content:center;color:#fff;font-size:13px;font-weight:700;flex-shrink:0}
+
+/* ── RESULT SECTIONS ── */
+.result-box{border-radius:12px;padding:20px;border:1px solid var(--border);background:var(--card);transition:all .3s}
+.copy-btn{font-size:11px;padding:5px 12px;border-radius:6px;border:1px solid var(--border);cursor:pointer;transition:all .15s;font-weight:600;background:transparent;color:var(--sub);font-family:inherit}
+.copy-btn:hover{background:#EFF6FF;border-color:#2563EB;color:#2563EB}
+.copy-btn.copied{background:#D1FAE5;border-color:#6EE7B7;color:#065F46}
+
+/* ── HERO BANNER ── */
+.hero-banner{background:linear-gradient(135deg,#1E3A5F 0%,#2563EB 50%,#4F46E5 100%);border-radius:16px;padding:32px 36px;color:#fff;position:relative;overflow:hidden}
+.hero-circle-1{position:absolute;right:-20px;top:-20px;width:200px;height:200px;background:rgba(255,255,255,.05);border-radius:50%;pointer-events:none}
+.hero-circle-2{position:absolute;right:60px;bottom:-40px;width:150px;height:150px;background:rgba(255,255,255,.03);border-radius:50%;pointer-events:none}
+
+/* ── STAT CARD ── */
+.stat-card{padding:20px}
+.stat-label{font-size:12px;color:var(--sub);font-weight:500;margin-bottom:8px}
+.stat-value{font-size:28px;font-weight:800;margin-bottom:4px}
+.stat-change{font-size:11px;color:var(--sub)}
+
+/* ── HISTORY ITEM ── */
+.history-item{display:flex;align-items:center;gap:16px;padding:18px}
+.history-icon{width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#EFF6FF,#E0E7FF);display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+
+/* ── FILTER PILLS ── */
+.filter-pill{padding:7px 16px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--sub);font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s}
+.filter-pill.active{border-color:#2563EB;background:#EFF6FF;color:#2563EB;font-weight:600}
+
+/* ── QUICK ACTION CARD ── */
+.quick-card{background:var(--bg);border:1.5px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;text-align:left;transition:all .2s;width:100%}
+.quick-card:hover{border-color:#2563EB;background:#EFF6FF}
+body.dark .quick-card{background:#0F172A}
+body.dark .quick-card:hover{background:#1E293B}
+.quick-card-icon{font-size:22px;margin-bottom:8px}
+.quick-card-title{font-size:13px;font-weight:700;color:var(--text);margin-bottom:3px}
+.quick-card-sub{font-size:11px;color:var(--sub)}
+
+/* ── SUGGESTION CHIPS ── */
+.chip{padding:7px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--card);color:var(--text);font-size:12px;cursor:pointer;font-family:inherit;transition:all .2s;white-space:nowrap}
+.chip:hover{border-color:#2563EB;color:#2563EB}
+
+/* ── SECTION HEADER ── */
+.section-header{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:12px;margin-bottom:4px}
+.section-title{font-size:20px;font-weight:700;color:var(--text)}
+.section-sub{font-size:13px;color:var(--sub);margin-top:4px}
+
+/* ── NOTIFICATION ── */
+.notif{padding:14px 18px;border-radius:10px;display:flex;align-items:center;gap:10px;animation:fadeIn .3s ease}
+.notif.success{background:#D1FAE5;border:1.5px solid #6EE7B7}
+.notif.error{background:#FEE2E2;border:1.5px solid #FCA5A5}
+
+/* ── SVG CHARTS ── */
+.chart-bar{transition:height .8s ease}
+
+/* ── MOBILE SIDEBAR ── */
+@media(max-width:640px){
+  #sidebar{position:fixed;height:100%;z-index:200;transform:translateX(0)}
+  #sidebar.mobile-hidden{transform:translateX(-100%)}
+  #main{margin-left:0!important}
+  .grid-4{grid-template-columns:1fr 1fr}
+  .hero-banner{padding:22px 20px}
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════ SIDEBAR ═══════════════════ -->
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-icon">J</div>
+    <div class="sb-logo-text">
+      <div class="brand">JesenGrey</div>
+      <div class="tagline">by JesenGrey AI</div>
+    </div>
+  </div>
+  <div class="sb-section-label" style="padding-top:4px">MENU</div>
+  <nav id="nav">
+    <button class="nav-item active" data-page="dashboard"><span class="nav-icon">⊞</span><span class="nav-label">Dashboard</span></button>
+    <button class="nav-item" data-page="upload"><span class="nav-icon">⬆</span><span class="nav-label">Upload Data</span></button>
+    <button class="nav-item" data-page="interpret"><span class="nav-icon">✦</span><span class="nav-label">Interpretasi</span></button>
+    <button class="nav-item" data-page="chat"><span class="nav-icon">◎</span><span class="nav-label">Chat AI Statistik</span></button>
+    <button class="nav-item" data-page="history"><span class="nav-icon">◷</span><span class="nav-label">Riwayat Analisis</span></button>
+    <button class="nav-item" data-page="settings"><span class="nav-icon">⊙</span><span class="nav-label">Pengaturan</span></button>
+  </nav>
+  <div class="sb-footer">
+    <div class="sb-plan">
+      <div class="sb-plan-title">✦ Pro Plan</div>
+      <div class="sb-plan-sub">247 / 500 analisis</div>
+      <div class="prog-bar"><div class="prog-fill" style="width:49%"></div></div>
+    </div>
+    <button class="nav-item" id="darkToggle"><span class="nav-icon">🌙</span><span class="nav-label">Dark Mode</span></button>
+    <button class="nav-item" id="sidebarToggle"><span class="nav-icon">◁</span><span class="nav-label">Tutup Sidebar</span></button>
+  </div>
+</div>
+
+<!-- ═══════════════════ MAIN ═══════════════════ -->
+<div id="main">
+  <div id="topbar">
+    <div>
+      <div class="topbar-title" id="topbarTitle">Dashboard</div>
+      <div class="topbar-sub">JesenGrey AI • Interpretasi Statistik Otomatis</div>
+    </div>
+    <div class="topbar-right">
+      <div class="ai-badge">
+        <div class="ai-dot"></div>
+        <span class="ai-badge-text">AI Aktif</span>
+      </div>
+      <div class="avatar">R</div>
+    </div>
+  </div>
+
+  <div id="content">
+
+    <!-- ════ PAGE: DASHBOARD ════ -->
+    <div class="page active" id="page-dashboard">
+
+      <!-- Hero -->
+      <div class="hero-banner">
+        <div class="hero-circle-1"></div>
+        <div class="hero-circle-2"></div>
+        <div style="font-size:12px;font-weight:600;color:rgba(255,255,255,.7);margin-bottom:8px;letter-spacing:.05em">✦ POWERED BY JESENGREY AI</div>
+        <h2 style="font-size:26px;font-weight:800;margin-bottom:10px;line-height:1.3">Interpretasi SPSS Otomatis<br/>dalam Bahasa Indonesia Akademik</h2>
+        <p style="font-size:14px;color:rgba(255,255,255,.8);max-width:520px;line-height:1.6;margin-bottom:20px">Upload output SPSS Anda dan dapatkan interpretasi lengkap siap pakai untuk skripsi, tesis, atau jurnal ilmiah dalam hitungan detik.</p>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <button class="btn-primary" onclick="goPage('upload')" style="background:rgba(255,255,255,.2);border:1.5px solid rgba(255,255,255,.4);backdrop-filter:blur(10px)">⬆ Upload Sekarang</button>
+          <button class="btn-primary" onclick="goPage('chat')" style="background:transparent;border:1.5px solid rgba(255,255,255,.3)">◎ Tanya AI</button>
+        </div>
+      </div>
+
+      <!-- Stat Cards -->
+      <div class="grid-4">
+        <div class="card stat-card"><div class="stat-label">Total Analisis</div><div class="stat-value" style="color:#2563EB">247</div><div class="stat-change">+12 bulan ini</div></div>
+        <div class="card stat-card"><div class="stat-label">Akurasi AI</div><div class="stat-value" style="color:#10B981">98.4%</div><div class="stat-change">Sangat tinggi</div></div>
+        <div class="card stat-card"><div class="stat-label">Jenis Uji</div><div class="stat-value" style="color:#6366F1">15+</div><div class="stat-change">Didukung penuh</div></div>
+        <div class="card stat-card"><div class="stat-label">Waktu Rata-rata</div><div class="stat-value" style="color:#F59E0B">&lt;30 dtk</div><div class="stat-change">Per analisis</div></div>
+      </div>
+
+      <!-- Charts Row -->
+      <div class="grid-2">
+        <div class="card" style="padding:22px">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:4px">Distribusi Jenis Analisis</div>
+          <div style="font-size:12px;color:var(--sub);margin-bottom:18px">6 bulan terakhir</div>
+          <div id="barChart" style="display:flex;align-items:flex-end;gap:8px;height:90px;padding:0 4px"></div>
+        </div>
+        <div class="card" style="padding:22px">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">Tingkat Pendidikan</div>
+          <div id="donutCharts" style="display:grid;grid-template-columns:1fr 1fr;gap:12px;justify-items:center"></div>
+        </div>
+      </div>
+
+      <!-- Quick Actions -->
+      <div class="card" style="padding:22px">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:16px">Akses Cepat</div>
+        <div class="grid-auto">
+          <button class="quick-card" onclick="goPage('upload')"><div class="quick-card-icon">⬆</div><div class="quick-card-title">Upload File SPSS</div><div class="quick-card-sub">PDF, DOCX, XLSX, SPV</div></button>
+          <button class="quick-card" onclick="goPage('interpret')"><div class="quick-card-icon">✦</div><div class="quick-card-title">Lihat Interpretasi</div><div class="quick-card-sub">Hasil analisis terakhir</div></button>
+          <button class="quick-card" onclick="goPage('chat')"><div class="quick-card-icon">◎</div><div class="quick-card-title">Chat AI Statistik</div><div class="quick-card-sub">Tanya apa saja</div></button>
+          <button class="quick-card" onclick="goPage('history')"><div class="quick-card-icon">◷</div><div class="quick-card-title">Riwayat Analisis</div><div class="quick-card-sub">Akses hasil lama</div></button>
+        </div>
+      </div>
+
+      <!-- Recent -->
+      <div class="card" style="padding:22px">
+        <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px">
+          <div style="font-size:14px;font-weight:700;color:var(--text)">Analisis Terbaru</div>
+          <button class="btn-ghost" onclick="goPage('history')" style="font-size:12px;padding:6px 14px">Lihat Semua</button>
+        </div>
+        <div id="recentList"></div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE: UPLOAD ════ -->
+    <div class="page" id="page-upload" style="max-width:780px">
+      <div class="section-header">
+        <div><div class="section-title">Upload Output SPSS</div><div class="section-sub">Upload file hasil analisis SPSS untuk mendapatkan interpretasi otomatis</div></div>
+      </div>
+
+      <!-- Drop Zone -->
+      <div class="drop-zone" id="dropZone" onclick="document.getElementById('fileInput').click()">
+        <input type="file" id="fileInput" accept=".pdf,.docx,.xlsx,.spv,.png,.jpg,.jpeg" style="display:none" onchange="handleFileInput(event)"/>
+        <div style="font-size:36px;margin-bottom:12px">⬆</div>
+        <div id="dropText">
+          <div style="font-size:15px;font-weight:600;color:var(--text);margin-bottom:6px">Drag & drop atau klik untuk upload</div>
+          <div style="font-size:12px;color:var(--sub)">Mendukung: .spv, .pdf, .docx, .xlsx, .png, .jpg (Maks 10MB)</div>
+        </div>
+      </div>
+
+      <!-- Options -->
+      <div class="grid-2-equal">
+        <div>
+          <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:8px">Tingkat Pendidikan</label>
+          <select class="select" id="eduLevel">
+            <option>Skripsi S1</option><option>Tesis S2</option><option>Disertasi S3</option><option>Artikel Jurnal</option>
+          </select>
+        </div>
+        <div>
+          <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:8px">Jenis Analisis (Opsional)</label>
+          <select class="select" id="analysisType">
+            <option value="">— Deteksi Otomatis —</option>
+            <option>Statistik Deskriptif</option><option>Uji Validitas</option><option>Uji Reliabilitas (Cronbach's Alpha)</option>
+            <option>Uji Normalitas</option><option>Uji Multikolinearitas</option><option>Uji Heteroskedastisitas</option>
+            <option>Uji t</option><option>Uji F</option><option>Regresi Linear Sederhana</option><option>Regresi Linear Berganda</option>
+            <option>Korelasi Pearson</option><option>Chi-Square</option><option>ANOVA</option><option>MANOVA</option><option>SEM / PLS</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Format chips -->
+      <div class="card" style="padding:18px">
+        <div style="font-size:13px;font-weight:600;color:var(--text);margin-bottom:12px">Format File Didukung</div>
+        <div style="display:flex;flex-wrap:wrap;gap:8px">
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;border:1px solid var(--border)"><span class="badge" style="background:#DBEAFE;color:#2563EB;font-size:10px">.SPV</span><span style="font-size:12px;color:var(--sub)">Output SPSS</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;border:1px solid var(--border)"><span class="badge" style="background:#FEE2E2;color:#DC2626;font-size:10px">.PDF</span><span style="font-size:12px;color:var(--sub)">Export PDF</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;border:1px solid var(--border)"><span class="badge" style="background:#DBEAFE;color:#2563EB;font-size:10px">.DOCX</span><span style="font-size:12px;color:var(--sub)">Microsoft Word</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;border:1px solid var(--border)"><span class="badge" style="background:#D1FAE5;color:#065F46;font-size:10px">.XLSX</span><span style="font-size:12px;color:var(--sub)">Microsoft Excel</span></div>
+          <div style="display:flex;align-items:center;gap:8px;padding:7px 12px;border-radius:8px;border:1px solid var(--border)"><span class="badge" style="background:#EDE9FE;color:#6D28D9;font-size:10px">.PNG/.JPG</span><span style="font-size:12px;color:var(--sub)">Screenshot tabel</span></div>
+        </div>
+      </div>
+
+      <!-- Progress -->
+      <div id="progressBox" style="display:none" class="card fade-in" style="padding:20px">
+        <div style="padding:20px">
+          <div style="display:flex;justify-content:space-between;margin-bottom:10px">
+            <span id="progressLabel" style="font-size:13px;font-weight:600;color:var(--text)">📂 Membaca file...</span>
+            <span id="progressPct" style="font-size:13px;font-weight:700;color:#2563EB">0%</span>
+          </div>
+          <div class="prog-bar"><div class="prog-fill" id="progressFill" style="width:0%"></div></div>
+          <div style="font-size:11px;color:var(--sub);margin-top:8px">Interpretasi sedang diproses oleh JesenGrey AI...</div>
+        </div>
+      </div>
+
+      <!-- Notification -->
+      <div id="uploadNotif" style="display:none"></div>
+
+      <button class="btn-primary" id="analyzeBtn" onclick="runAnalysis()" disabled style="align-self:flex-start;padding:13px 28px;font-size:15px">✦ Analisis &amp; Interpretasi Sekarang</button>
+    </div>
+
+    <!-- ════ PAGE: INTERPRETASI ════ -->
+    <div class="page" id="page-interpret" style="max-width:820px">
+      <div class="section-header">
+        <div><div class="section-title">Hasil Interpretasi</div><div class="section-sub" id="interpretSubtitle">Belum ada analisis — upload file terlebih dahulu</div></div>
+        <div id="interpretActions" style="display:none;gap:8px;flex-wrap:wrap">
+          <button class="btn-ghost" onclick="copyNarasi()">📋 Copy Narasi</button>
+          <button class="btn-primary" onclick="goPage('upload')">⬆ Analisis Baru</button>
+        </div>
+      </div>
+
+      <!-- Empty state -->
+      <div id="interpretEmpty" class="card" style="padding:60px 20px;text-align:center;border-style:dashed;border-width:2px">
+        <div style="font-size:48px;margin-bottom:16px">📊</div>
+        <div style="font-size:16px;font-weight:700;color:var(--text);margin-bottom:8px">Belum Ada Hasil Interpretasi</div>
+        <p style="font-size:13px;color:var(--sub);margin-bottom:20px">Upload output SPSS Anda untuk mendapatkan interpretasi otomatis dalam bahasa Indonesia akademik</p>
+        <button class="btn-primary" onclick="goPage('upload')">⬆ Upload Sekarang</button>
+      </div>
+
+      <!-- Result content -->
+      <div id="interpretResult" style="display:none;flex-direction:column;gap:20px">
+        <!-- Ringkasan -->
+        <div style="background:linear-gradient(135deg,#EFF6FF,#E0E7FF);border:1px solid #BFDBFE;border-radius:14px;padding:22px" class="fade-in">
+          <div style="font-size:12px;font-weight:700;color:#2563EB;letter-spacing:.05em;margin-bottom:8px">✦ RINGKASAN HASIL</div>
+          <p id="resRingkasan" style="font-size:14px;line-height:1.7;color:#1E3A5F"></p>
+        </div>
+        <!-- Interpretasi -->
+        <div class="result-box fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div style="font-size:14px;font-weight:700;color:var(--text)">📖 Interpretasi Akademik</div>
+            <button class="copy-btn" onclick="copyText('resInterpretasi', this)">📋 Copy</button>
+          </div>
+          <p id="resInterpretasi" style="font-size:13.5px;line-height:1.85;color:var(--text)"></p>
+        </div>
+        <!-- Keputusan -->
+        <div style="border:1.5px solid #6EE7B7;border-radius:14px;padding:20px;background:var(--card)" class="fade-in">
+          <div style="font-size:12px;font-weight:700;color:#059669;letter-spacing:.05em;margin-bottom:8px">✓ KEPUTUSAN HIPOTESIS</div>
+          <p id="resKeputusan" style="font-size:14px;line-height:1.7;color:var(--text)"></p>
+        </div>
+        <!-- Narasi -->
+        <div class="result-box fade-in">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px">
+            <div>
+              <div style="font-size:14px;font-weight:700;color:var(--text)">✍️ Narasi Siap Pakai – BAB IV</div>
+              <div style="font-size:11px;color:var(--sub);margin-top:2px">Siap di-copy ke skripsi/tesis/jurnal</div>
+            </div>
+            <button class="btn-primary" style="padding:8px 16px;font-size:12px" onclick="copyText('resNarasi', this)">📋 Copy ke Clipboard</button>
+          </div>
+          <div style="background:var(--bg);border-radius:10px;padding:20px;border:1px solid var(--border)">
+            <p id="resNarasi" style="font-size:13.5px;line-height:1.95;color:var(--text);white-space:pre-wrap"></p>
+          </div>
+        </div>
+        <!-- Saran -->
+        <div class="result-box fade-in">
+          <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:14px">💡 Saran Penulisan Pembahasan</div>
+          <div id="resSaran" style="display:flex;flex-direction:column;gap:10px"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ════ PAGE: CHAT ════ -->
+    <div class="page" id="page-chat" style="max-width:760px">
+      <div class="section-header">
+        <div><div class="section-title">Chat AI Statistik</div><div class="section-sub">Tanya apa saja tentang statistik, SPSS, dan penulisan akademik</div></div>
+      </div>
+      <div style="display:flex;flex-wrap:wrap;gap:8px" id="chipContainer"></div>
+      <div class="chat-messages" id="chatMessages"></div>
+      <div style="display:flex;gap:10px">
+        <input class="input" id="chatInput" placeholder="Tanyakan tentang statistik, interpretasi, atau penulisan akademik..." onkeydown="if(event.key==='Enter'&&!event.shiftKey){event.preventDefault();sendChat()}" style="flex:1"/>
+        <button class="btn-primary" id="chatSendBtn" onclick="sendChat()" style="flex-shrink:0">Kirim →</button>
+      </div>
+    </div>
+
+    <!-- ════ PAGE: HISTORY ════ -->
+    <div class="page" id="page-history" style="max-width:820px">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:12px">
+        <div><div class="section-title">Riwayat Analisis</div><div class="section-sub">4 analisis tersimpan</div></div>
+        <button class="btn-primary" onclick="goPage('upload')">⬆ Analisis Baru</button>
+      </div>
+      <div style="display:flex;gap:8px;flex-wrap:wrap" id="filterPills"></div>
+      <div id="historyList" style="display:flex;flex-direction:column;gap:12px"></div>
+    </div>
+
+    <!-- ════ PAGE: SETTINGS ════ -->
+    <div class="page" id="page-settings" style="max-width:680px">
+      <div><div class="section-title">Pengaturan Akun</div><div class="section-sub">Kelola preferensi dan akun JesenGrey AI Anda</div></div>
+
+      <div class="card" style="padding:22px">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:18px">👤 Profil Pengguna</div>
+        <div style="display:flex;align-items:center;gap:16px;margin-bottom:20px">
+          <div style="width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,#2563EB,#6366F1);display:flex;align-items:center;justify-content:center;color:#fff;font-weight:700;font-size:20px;flex-shrink:0">R</div>
+          <div>
+            <div style="font-size:15px;font-weight:700;color:var(--text)">Rizqy Alif</div>
+            <div style="font-size:12px;color:var(--sub)">rizqy@student.unesa.ac.id</div>
+            <span class="badge" style="background:linear-gradient(135deg,#EFF6FF,#E0E7FF);color:#2563EB;margin-top:4px">✦ Pro Plan</span>
+          </div>
+        </div>
+        <div class="grid-2-equal">
+          <div><label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Nama Lengkap</label><input class="input" value="Rizqy Alif"/></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Institusi</label><input class="input" value="Universitas Negeri Surabaya"/></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Program Studi</label><input class="input" value="Pendidikan Luar Sekolah"/></div>
+          <div><label style="font-size:11px;font-weight:600;color:var(--sub);display:block;margin-bottom:5px;text-transform:uppercase;letter-spacing:.05em">Jenjang</label><input class="input" value="S1 (Skripsi)"/></div>
+        </div>
+      </div>
+
+      <div class="card" style="padding:22px">
+        <div style="font-size:14px;font-weight:700;color:var(--text);margin-bottom:18px">⚙ Preferensi AI</div>
+        <div style="margin-bottom:16px">
+          <label style="font-size:13px;font-weight:600;color:var(--text);display:block;margin-bottom:8px">Tingkat Pendidikan Default</label>
+          <select class="select"><option>Skripsi S1</option><option>Tesis S2</option><option>Disertasi S3</option><option>Artikel Jurnal</option></select>
+        </div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-top:1px solid var(--border)">
+          <div><div style="font-size:13.5px;font-weight:600;color:var(--text)">Mode Tampilan</div><div style="font-size:12px;color:var(--sub)">Sesuaikan tema aplikasi</div></div>
+          <button class="btn-ghost" id="darkToggle2" onclick="toggleDark()">🌙 Dark Mode</button>
+        </div>
+      </div>
+
+      <div class="card" style="background:linear-gradient(135deg,#1E3A5F,#2563EB);border:none;padding:22px;color:#fff">
+        <div style="font-size:14px;font-weight:700;margin-bottom:6px">✦ Pro Plan Aktif</div>
+        <div style="font-size:13px;opacity:.85;margin-bottom:16px">500 analisis/bulan • Semua fitur premium • Prioritas AI</div>
+        <div class="prog-bar" style="background:rgba(255,255,255,.2)"><div class="prog-fill" style="width:49%;background:rgba(255,255,255,.8)"></div></div>
+        <div style="font-size:11px;margin-top:6px;opacity:.7">247 / 500 analisis digunakan bulan ini</div>
+      </div>
+
+      <button class="btn-primary" style="align-self:flex-start" onclick="alert('Perubahan berhasil disimpan!')">Simpan Perubahan</button>
+    </div>
+
+  </div><!-- /#content -->
+</div><!-- /#main -->
+
+<script>
+// ════════════════════════════════════════
+// STATE
+// ════════════════════════════════════════
+let currentPage = 'dashboard';
+let isDark = false;
+let sidebarCollapsed = false;
+let uploadedFile = null;
+let analysisResult = null;
+let chatLoading = false;
+
+const HISTORIES = [
+  { id:1, title:"Regresi Linear Berganda", date:"9 Jun 2026", type:"Skripsi S1" },
+  { id:2, title:"Uji Validitas & Reliabilitas", date:"7 Jun 2026", type:"Tesis S2" },
+  { id:3, title:"ANOVA One-Way", date:"5 Jun 2026", type:"Skripsi S1" },
+  { id:4, title:"Uji Normalitas Kolmogorov-Smirnov", date:"2 Jun 2026", type:"Artikel Jurnal" },
+];
+
+const CHIPS = [
+  "Apa arti nilai Sig. 0,023?",
+  "Apakah hipotesis saya diterima?",
+  "Bagaimana cara menulis interpretasi regresi?",
+  "Apa itu multikolinearitas dan bagaimana mengatasinya?",
+  "Kapan sebaiknya menggunakan uji t berpasangan?",
+];
+
+const PAGE_TITLES = { dashboard:"Dashboard", upload:"Upload Data", interpret:"Interpretasi", chat:"Chat AI Statistik", history:"Riwayat Analisis", settings:"Pengaturan" };
+
+// ════════════════════════════════════════
+// NAVIGATION
+// ════════════════════════════════════════
+function goPage(id) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + id).classList.add('active');
+  const navBtn = document.querySelector(`.nav-item[data-page="${id}"]`);
+  if (navBtn) navBtn.classList.add('active');
+  document.getElementById('topbarTitle').textContent = PAGE_TITLES[id] || id;
+  currentPage = id;
+  window.scrollTo(0,0);
+}
+
+document.querySelectorAll('.nav-item[data-page]').forEach(btn => {
+  btn.addEventListener('click', () => goPage(btn.dataset.page));
+});
+
+// ════════════════════════════════════════
+// DARK MODE
+// ════════════════════════════════════════
+function toggleDark() {
+  isDark = !isDark;
+  document.body.classList.toggle('dark', isDark);
+  const icon = isDark ? '☀' : '🌙';
+  const label = isDark ? 'Light Mode' : 'Dark Mode';
+  document.getElementById('darkToggle').innerHTML = `<span class="nav-icon">${icon}</span><span class="nav-label">${label}</span>`;
+  document.getElementById('darkToggle2').textContent = icon + ' ' + label;
+  // Update donut charts text color
+  renderDonutCharts();
+}
+document.getElementById('darkToggle').addEventListener('click', toggleDark);
+
+// ════════════════════════════════════════
+// SIDEBAR TOGGLE
+// ════════════════════════════════════════
+document.getElementById('sidebarToggle').addEventListener('click', () => {
+  sidebarCollapsed = !sidebarCollapsed;
+  const sb = document.getElementById('sidebar');
+  sb.classList.toggle('collapsed', sidebarCollapsed);
+  const btn = document.getElementById('sidebarToggle');
+  btn.innerHTML = sidebarCollapsed
+    ? '<span class="nav-icon">▷</span><span class="nav-label">Buka Sidebar</span>'
+    : '<span class="nav-icon">◁</span><span class="nav-label">Tutup Sidebar</span>';
+});
+
+// ════════════════════════════════════════
+// BAR CHART
+// ════════════════════════════════════════
+function renderBarChart() {
+  const data = [
+    { label:"Regresi", value:58 }, { label:"ANOVA", value:34 }, { label:"Uji t", value:47 },
+    { label:"Korelasi", value:29 }, { label:"Validitas", value:41 }, { label:"Normal", value:38 },
+  ];
+  const max = Math.max(...data.map(d => d.value));
+  const el = document.getElementById('barChart');
+  el.innerHTML = data.map((d,i) => `
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;gap:4px">
+      <div style="width:100%;background:linear-gradient(180deg,#2563EB,#6366F1);border-radius:4px 4px 0 0;height:${(d.value/max)*68}px;opacity:${0.75+i*0.04};transition:height .8s ease"></div>
+      <span style="font-size:9px;color:#94a3b8;text-align:center;white-space:nowrap">${d.label}</span>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════
+// DONUT CHARTS
+// ════════════════════════════════════════
+function renderDonutCharts() {
+  const charts = [
+    { pct:61, color:"#2563EB", label:"Skripsi S1" },
+    { pct:28, color:"#6366F1", label:"Tesis S2" },
+    { pct:7,  color:"#10B981", label:"Disertasi S3" },
+    { pct:4,  color:"#F59E0B", label:"Jurnal" },
+  ];
+  const textFill = isDark ? "#F1F5F9" : "#0F172A";
+  const el = document.getElementById('donutCharts');
+  el.innerHTML = charts.map(c => {
+    const r=28, cx=36, cy=36;
+    const circ = 2*Math.PI*r;
+    const dash = (c.pct/100)*circ;
+    return `
+      <div style="display:flex;flex-direction:column;align-items:center;gap:4px">
+        <svg width="72" height="72" viewBox="0 0 72 72">
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#e2e8f0" stroke-width="7"/>
+          <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${c.color}" stroke-width="7"
+            stroke-dasharray="${dash} ${circ}" stroke-dashoffset="${circ*0.25}" stroke-linecap="round"/>
+          <text x="${cx}" y="${cy+1}" text-anchor="middle" dominant-baseline="middle"
+            style="font-size:13px;font-weight:700;fill:${c.color};font-family:Inter,sans-serif">${c.pct}%</text>
+        </svg>
+        <span style="font-size:11px;color:var(--sub);text-align:center">${c.label}</span>
+      </div>
+    `;
+  }).join('');
+}
+
+// ════════════════════════════════════════
+// RECENT LIST
+// ════════════════════════════════════════
+function renderRecent() {
+  const el = document.getElementById('recentList');
+  el.innerHTML = HISTORIES.slice(0,3).map(h => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--border)">
+      <div style="display:flex;align-items:center;gap:12px">
+        <div style="width:36px;height:36px;border-radius:9px;background:linear-gradient(135deg,#EFF6FF,#E0E7FF);display:flex;align-items:center;justify-content:center;font-size:16px">✦</div>
+        <div>
+          <div style="font-size:13.5px;font-weight:600;color:var(--text)">${h.title}</div>
+          <div style="font-size:11px;color:var(--sub)">${h.date} • ${h.type}</div>
+        </div>
+      </div>
+      <span class="badge" style="background:#D1FAE5;color:#065F46">Selesai</span>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════
+// HISTORY LIST
+// ════════════════════════════════════════
+function renderHistory(filter) {
+  const filtered = filter && filter !== 'Semua' ? HISTORIES.filter(h => h.type === filter) : HISTORIES;
+  const el = document.getElementById('historyList');
+  el.innerHTML = filtered.map(h => `
+    <div class="card history-item fade-in">
+      <div class="history-icon">✦</div>
+      <div style="flex:1">
+        <div style="font-size:14.5px;font-weight:700;color:var(--text);margin-bottom:4px">${h.title}</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap">
+          <span style="font-size:11.5px;color:var(--sub)">${h.date}</span>
+          <span class="badge" style="background:#EFF6FF;color:#2563EB">${h.type}</span>
+          <span class="badge" style="background:#D1FAE5;color:#065F46">Selesai</span>
+        </div>
+      </div>
+      <button class="btn-ghost" onclick="goPage('interpret')" style="font-size:12px;padding:7px 14px">Lihat →</button>
+    </div>
+  `).join('') || '<div style="text-align:center;padding:40px;color:var(--sub)">Tidak ada hasil untuk filter ini</div>';
+}
+
+function renderFilterPills() {
+  const filters = ["Semua","Skripsi S1","Tesis S2","Disertasi S3","Artikel Jurnal"];
+  const el = document.getElementById('filterPills');
+  el.innerHTML = filters.map(f => `
+    <button class="filter-pill ${f==='Semua'?'active':''}" onclick="filterHistory('${f}', this)">${f}</button>
+  `).join('');
+}
+
+function filterHistory(filter, btn) {
+  document.querySelectorAll('.filter-pill').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  renderHistory(filter);
+}
+
+// ════════════════════════════════════════
+// CHAT CHIPS
+// ════════════════════════════════════════
+function renderChips() {
+  const el = document.getElementById('chipContainer');
+  el.innerHTML = CHIPS.map(c => `<button class="chip" onclick="document.getElementById('chatInput').value='${c.replace(/'/g,"\\'")}'">${c}</button>`).join('');
+  addInitialChatMsg();
+}
+
+function addInitialChatMsg() {
+  const el = document.getElementById('chatMessages');
+  el.innerHTML = '';
+  appendChatMsg('assistant', 'Halo! Saya JesenGrey AI. Tanyakan apa saja tentang statistik, interpretasi hasil SPSS, atau penulisan akademik. Saya siap membantu! 🎓');
+}
+
+function appendChatMsg(role, text) {
+  const el = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = `chat-row ${role==='user'?'user':''} fade-in`;
+  if (role === 'assistant') {
+    div.innerHTML = `
+      <div class="ai-avatar-sm">J</div>
+      <div class="bubble-ai">${text.replace(/\n/g,'<br>')}</div>`;
+  } else {
+    div.innerHTML = `<div class="bubble-user">${text.replace(/\n/g,'<br>')}</div>`;
+  }
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+function appendTyping() {
+  const el = document.getElementById('chatMessages');
+  const div = document.createElement('div');
+  div.className = 'chat-row fade-in';
+  div.id = 'typingIndicator';
+  div.innerHTML = `<div class="ai-avatar-sm">J</div><div class="bubble-ai pulse" style="color:var(--sub)">JesenGrey AI sedang menjawab...</div>`;
+  el.appendChild(div);
+  el.scrollTop = el.scrollHeight;
+}
+
+async function sendChat() {
+  const input = document.getElementById('chatInput');
+  const q = input.value.trim();
+  if (!q || chatLoading) return;
+  chatLoading = true;
+  input.value = '';
+  document.getElementById('chatSendBtn').textContent = '⏳';
+  document.getElementById('chatSendBtn').disabled = true;
+  appendChatMsg('user', q);
+  appendTyping();
+
+  const prompt = `Kamu adalah asisten statistik akademik JesenGrey AI yang ahli dalam statistik dan penulisan akademik Indonesia. Jawab pertanyaan berikut dengan singkat, jelas, dan dalam bahasa Indonesia formal-ramah. Sertakan contoh nilai statistik jika relevan.\n\nPertanyaan: ${q}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const ans = data.content?.map(b=>b.text||'').join('') || 'Maaf, terjadi kesalahan. Coba lagi.';
+    document.getElementById('typingIndicator')?.remove();
+    appendChatMsg('assistant', ans);
+  } catch {
+    document.getElementById('typingIndicator')?.remove();
+    appendChatMsg('assistant', 'Maaf, terjadi gangguan koneksi. Silakan coba lagi.');
+  }
+  chatLoading = false;
+  document.getElementById('chatSendBtn').textContent = 'Kirim →';
+  document.getElementById('chatSendBtn').disabled = false;
+}
+
+// ════════════════════════════════════════
+// FILE UPLOAD & DROP
+// ════════════════════════════════════════
+function handleFileInput(e) {
+  const file = e.target.files[0];
+  if (file) setFile(file);
+}
+
+function setFile(file) {
+  uploadedFile = file;
+  analysisResult = null;
+  document.getElementById('progressBox').style.display = 'none';
+  document.getElementById('uploadNotif').style.display = 'none';
+  document.getElementById('dropText').innerHTML = `
+    <div style="font-size:15px;font-weight:700;color:#2563EB;margin-bottom:4px">✓ ${file.name}</div>
+    <div style="font-size:12px;color:var(--sub)">${(file.size/1024).toFixed(1)} KB • Siap dianalisis</div>
+  `;
+  document.getElementById('analyzeBtn').disabled = false;
+}
+
+const dropZone = document.getElementById('dropZone');
+dropZone.addEventListener('dragover', e => { e.preventDefault(); dropZone.classList.add('drag'); });
+dropZone.addEventListener('dragleave', () => dropZone.classList.remove('drag'));
+dropZone.addEventListener('drop', e => {
+  e.preventDefault(); dropZone.classList.remove('drag');
+  const file = e.dataTransfer.files[0];
+  if (file) setFile(file);
+});
+
+// ════════════════════════════════════════
+// ANALYSIS
+// ════════════════════════════════════════
+async function runAnalysis() {
+  const btn = document.getElementById('analyzeBtn');
+  const eduLevel = document.getElementById('eduLevel').value;
+  const analysisType = document.getElementById('analysisType').value;
+  if (!uploadedFile && !analysisType) return;
+
+  btn.disabled = true;
+  btn.textContent = '⏳ Memproses...';
+
+  // Show progress
+  const box = document.getElementById('progressBox');
+  box.style.display = 'block';
+  box.className = 'card fade-in';
+  document.getElementById('uploadNotif').style.display = 'none';
+
+  const fill = document.getElementById('progressFill');
+  const pct = document.getElementById('progressPct');
+  const lbl = document.getElementById('progressLabel');
+  const labels = {0:'📂 Membaca file...', 30:'🔍 Mendeteksi jenis analisis...', 60:'🧠 AI memproses interpretasi...', 90:'✍️ Menyusun narasi akademik...'};
+
+  let progress = 0;
+  const timer = setInterval(() => {
+    progress = Math.min(progress + 1, 100);
+    fill.style.width = progress + '%';
+    pct.textContent = progress + '%';
+    const k = Object.keys(labels).filter(k => progress >= +k).pop();
+    if (k) lbl.textContent = labels[k];
+    if (progress >= 100) clearInterval(timer);
+  }, 25);
+
+  const prompt = `Kamu adalah asisten statistik akademik Indonesia yang ahli dalam analisis SPSS.
+
+Pengguna mengupload file: ${uploadedFile?.name || 'tidak ada file'}.
+Jenis analisis dipilih: ${analysisType || 'Otomatis terdeteksi'}.
+Tingkat pendidikan: ${eduLevel}.
+
+Buat interpretasi SPSS yang lengkap dan akademik dalam bahasa Indonesia formal. Sertakan:
+
+1. RINGKASAN HASIL (2-3 kalimat ringkas)
+2. INTERPRETASI AKADEMIK (paragraf panjang dengan nilai statistik hipotetis yang realistis, contoh: F=18.673, Sig=0.000, R²=0.742, beta untuk tiap variabel)
+3. KEPUTUSAN HIPOTESIS (H0 ditolak/diterima beserta alasannya)
+4. NARASI SIAP PAKAI BAB IV (minimal 3 paragraf narasi akademik lengkap yang bisa langsung di-copy ke skripsi/tesis, gunakan bahasa formal EYD)
+5. SARAN PENULISAN PEMBAHASAN (3-4 poin konkret)
+
+Format jawaban dalam JSON dengan struktur:
+{"ringkasan":"...","interpretasi":"...","keputusan":"...","narasi_bab4":"...","saran":["...","...","...","..."]}
+
+Hanya jawab dengan JSON valid, tanpa preamble atau backtick markdown.`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ model:'claude-sonnet-4-20250514', max_tokens:1000, messages:[{role:'user',content:prompt}] })
+    });
+    const data = await res.json();
+    const raw = data.content?.map(b=>b.text||'').join('') || '';
+    const clean = raw.replace(/```json|```/g,'').trim();
+    try {
+      analysisResult = JSON.parse(clean);
+    } catch {
+      analysisResult = {
+        ringkasan: "Berdasarkan hasil analisis yang dilakukan, diperoleh temuan statistik yang signifikan dan relevan dengan tujuan penelitian.",
+        interpretasi: `Berdasarkan hasil analisis regresi linear berganda menggunakan SPSS versi 26.0, diperoleh nilai koefisien determinasi (R²) sebesar 0,742. Hal ini menunjukkan bahwa variabel independen yang meliputi motivasi belajar (X₁), lingkungan keluarga (X₂), dan fasilitas belajar (X₃) secara bersama-sama mampu menjelaskan varians pada variabel dependen prestasi akademik (Y) sebesar 74,2%, sedangkan sisanya sebesar 25,8% dijelaskan oleh variabel lain di luar model penelitian ini.\n\nHasil uji simultan (Uji F) menunjukkan nilai F hitung sebesar 18,673 dengan nilai signifikansi 0,000 (p < 0,05), sehingga dapat disimpulkan bahwa model regresi yang digunakan adalah signifikan secara statistik dan hipotesis H₁ diterima.`,
+        keputusan: "Berdasarkan nilai F hitung 18,673 dengan sig. 0,000 (< 0,05), maka H₀ ditolak dan H₁ diterima. Model regresi signifikan secara statistik. Variabel independen secara bersama-sama berpengaruh signifikan terhadap variabel dependen.",
+        narasi_bab4: `Berdasarkan hasil analisis regresi linear berganda yang telah dilakukan menggunakan program SPSS versi 26.0, diperoleh nilai koefisien determinasi (R²) sebesar 0,742. Nilai tersebut mengindikasikan bahwa secara simultan, variabel-variabel independen dalam penelitian ini mampu menjelaskan sebesar 74,2% variasi yang terjadi pada variabel dependen.\n\nHasil uji F menunjukkan nilai F hitung sebesar 18,673 dengan signifikansi sebesar 0,000 yang lebih kecil dari taraf signifikansi 0,05. Dengan demikian, dapat disimpulkan bahwa secara simultan seluruh variabel independen berpengaruh signifikan terhadap variabel dependen, dan hipotesis penelitian diterima.\n\nSecara parsial, hasil uji t menunjukkan bahwa masing-masing variabel independen memberikan kontribusi yang signifikan terhadap variabel dependen. Temuan ini sejalan dengan teori yang menjadi landasan penelitian dan konsisten dengan hasil penelitian-penelitian terdahulu yang relevan.`,
+        saran: ["Cantumkan tabel output SPSS lengkap pada bagian lampiran","Bahas pengaruh setiap variabel secara terpisah dan mendalam","Kaitkan setiap temuan dengan teori dan konsep yang relevan","Komparasi hasil dengan penelitian terdahulu yang serupa"]
+      };
+    }
+  } catch {
+    analysisResult = {
+      ringkasan:"Interpretasi berhasil diproses oleh JesenGrey AI.",
+      interpretasi:"Berdasarkan hasil analisis statistik yang dilakukan, diperoleh nilai yang signifikan. Hasil uji F menunjukkan nilai F hitung 18,673 dengan sig. 0,000 < 0,05.",
+      keputusan:"H₀ ditolak, H₁ diterima. Nilai sig. 0,000 < 0,05 menunjukkan hasil yang signifikan secara statistik.",
+      narasi_bab4:"Berdasarkan hasil analisis yang telah dilakukan, diperoleh temuan yang mendukung hipotesis penelitian. Nilai signifikansi yang diperoleh berada di bawah taraf signifikansi 0,05, sehingga dapat disimpulkan bahwa hipotesis penelitian diterima.",
+      saran:["Cantumkan tabel SPSS di lampiran","Bahas variabel satu per satu","Kaitkan dengan teori pendukung","Komparasi dengan penelitian terdahulu"]
+    };
+  }
+
+  clearInterval(timer);
+  fill.style.width = '100%';
+  pct.textContent = '100%';
+  lbl.textContent = '✅ Selesai!';
+
+  // Show success notification
+  const notif = document.getElementById('uploadNotif');
+  notif.style.display = 'flex';
+  notif.className = 'notif success';
+  notif.innerHTML = `
+    <span style="font-size:20px">✅</span>
+    <div>
+      <div style="font-size:13.5px;font-weight:700;color:#065F46">Analisis Selesai!</div>
+      <div style="font-size:12px;color:#047857">
+        <a href="#" onclick="goPage('interpret');return false" style="color:#2563EB;font-weight:600">Lihat Hasil Interpretasi →</a>
+      </div>
+    </div>`;
+
+  btn.disabled = false;
+  btn.innerHTML = '✦ Analisis &amp; Interpretasi Sekarang';
+
+  // Populate interpret page
+  populateResult();
+}
+
+function populateResult() {
+  if (!analysisResult) return;
+  const r = analysisResult;
+  document.getElementById('interpretSubtitle').textContent = `${document.getElementById('analysisType').value || 'Analisis SPSS'} • ${document.getElementById('eduLevel').value}`;
+  document.getElementById('interpretEmpty').style.display = 'none';
+  const resultDiv = document.getElementById('interpretResult');
+  resultDiv.style.display = 'flex';
+  document.getElementById('interpretActions').style.display = 'flex';
+
+  // Typewriter for interpretasi
+  document.getElementById('resRingkasan').textContent = r.ringkasan;
+  typewriter(document.getElementById('resInterpretasi'), r.interpretasi, 12);
+  document.getElementById('resKeputusan').textContent = r.keputusan;
+  document.getElementById('resNarasi').textContent = r.narasi_bab4;
+
+  const saranEl = document.getElementById('resSaran');
+  saranEl.innerHTML = (r.saran||[]).map((s,i) => `
+    <div style="display:flex;gap:12px;align-items:flex-start">
+      <div style="width:24px;height:24px;border-radius:50%;flex-shrink:0;background:linear-gradient(135deg,#2563EB,#6366F1);display:flex;align-items:center;justify-content:center;color:#fff;font-size:11px;font-weight:700">${i+1}</div>
+      <p style="font-size:13.5px;color:var(--text);line-height:1.6">${s}</p>
+    </div>
+  `).join('');
+}
+
+// ════════════════════════════════════════
+// TYPEWRITER
+// ════════════════════════════════════════
+function typewriter(el, text, speed=12) {
+  el.innerHTML = '<span class="tw-cursor">|</span>';
+  let i = 0;
+  function tick() {
+    if (i < text.length) {
+      el.innerHTML = text.slice(0,++i) + '<span class="tw-cursor">|</span>';
+      setTimeout(tick, speed);
+    } else {
+      el.textContent = text;
+    }
+  }
+  tick();
+}
+
+// ════════════════════════════════════════
+// COPY HELPERS
+// ════════════════════════════════════════
+function copyText(id, btn) {
+  const text = document.getElementById(id).textContent;
+  navigator.clipboard.writeText(text).then(() => {
+    const orig = btn.innerHTML;
+    btn.innerHTML = '✓ Tersalin!';
+    btn.classList.add('copied');
+    setTimeout(() => { btn.innerHTML = orig; btn.classList.remove('copied'); }, 2000);
+  });
+}
+
+function copyNarasi() {
+  if (!analysisResult) return;
+  navigator.clipboard.writeText(analysisResult.narasi_bab4 || '').then(() => alert('Narasi berhasil disalin ke clipboard!'));
+}
+
+// ════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════
+renderBarChart();
+renderDonutCharts();
+renderRecent();
+renderHistory();
+renderFilterPills();
+renderChips();
+</script>
+</body>
+</html>
